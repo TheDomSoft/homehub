@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Reading - Water Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Deletion
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="{{ reading.image.url }}" alt="Water meter reading" class="img-fluid" style="max-height: 200px;">
+                </div>
+                
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <h6>Reading Details:</h6>
+                <ul>
+                    <li><strong>Meter:</strong> {{ reading.meter.name }}</li>
+                    <li><strong>Reading Value:</strong> {{ reading.reading_value|default:"Not processed" }}</li>
+                    <li><strong>Timestamp:</strong> {{ reading.timestamp|date:"M d, Y H:i" }}</li>
+                    <li><strong>Notes:</strong> {{ reading.notes|default:"None" }}</li>
+                </ul>
+                
+                <p class="text-muted">
+                    Deleting this reading will also affect your usage calculations and analytics.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <a href="{% url 'utilities:readings_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Yes, Delete Reading
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

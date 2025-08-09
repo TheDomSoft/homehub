@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Meter - Water Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirm Meter Deletion
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <h6>Meter Details:</h6>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> {{ meter.name }}</p>
+                                <p><strong>Type:</strong> {{ meter.get_meter_type_display }}</p>
+                                <p><strong>Created:</strong> {{ meter.created_at|date:"M d, Y" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> 
+                                    {% if meter.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </p>
+                                <p><strong>Total Readings:</strong> 
+                                    <span class="badge bg-info">{{ readings_count }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if readings_count > 0 %}
+                <div class="alert alert-warning">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-camera me-2"></i>
+                        Impact on Readings
+                    </h6>
+                    <p class="mb-2">
+                        This meter has <strong>{{ readings_count }}</strong> water reading(s) associated with it.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Deleting this meter will permanently delete:</strong>
+                    </p>
+                    <ul class="mb-0">
+                        <li>All {{ readings_count }} uploaded images</li>
+                        <li>All reading values and timestamps</li>
+                        <li>All usage calculations and analytics data</li>
+                        <li>All notes and metadata</li>
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <h6>Consider These Alternatives:</h6>
+                    <ul>
+                        <li><strong>Edit:</strong> <a href="{% url 'utilities:edit_meter' meter.id %}" class="text-decoration-none">Change the meter name or type</a> instead</li>
+                        <li><strong>Deactivate:</strong> Keep the meter but mark it as inactive (contact admin)</li>
+                        <li><strong>Export:</strong> Download your data before deleting (feature coming soon)</li>
+                    </ul>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                        <label class="form-check-label" for="confirmDelete">
+                            I understand that this will permanently delete the meter and all {{ readings_count }} associated readings
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <a href="{% url 'utilities:meter_management' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Yes, Delete Meter & All Readings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

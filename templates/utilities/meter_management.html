@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Meter Management - HomeHub{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Your Meters
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if meters %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Cost per Liter</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for meter in meters %}
+                            <tr>
+                                <td>{{ meter.name }}</td>
+                                <td>
+                                    {% if meter.meter_type == 'hot' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-fire me-1"></i>
+                                            {{ meter.get_meter_type_display }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-snowflake me-1"></i>
+                                            {{ meter.get_meter_type_display }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ currency_symbol }}{{ meter.cost_per_unit }}</span>
+                                </td>
+                                <td>
+                                    {% if meter.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ meter.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'utilities:edit_meter' meter.id %}" 
+                                           class="btn btn-outline-primary"
+                                           title="Edit Meter">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'utilities:delete_meter' meter.id %}" 
+                                           class="btn btn-outline-danger"
+                                           title="Delete Meter"
+                                           onclick="return confirm('Are you sure you want to delete this meter and all its readings?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-tachometer-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No meters yet</h5>
+                    <p class="text-muted">Add your first meter to get started</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>
+                    Add New Meter
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Meter Name *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">e.g., "Kitchen Hot Water", "Main Cold Water"</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.meter_type.id_for_label }}" class="form-label">Meter Type *</label>
+                        {{ form.meter_type }}
+                        {% if form.meter_type.errors %}
+                            <div class="text-danger">{{ form.meter_type.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.cost_per_unit.id_for_label }}" class="form-label">{{ form.cost_per_unit.label }} *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ currency_symbol }}</span>
+                            {{ form.cost_per_unit }}
+                        </div>
+                        {% if form.cost_per_unit.errors %}
+                            <div class="text-danger">{{ form.cost_per_unit.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">{{ form.cost_per_unit.help_text }}</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Meter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    About Meters
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    <strong>Hot Water:</strong> Typically red-marked meters measuring heated water usage
+                </p>
+                <p class="small mb-0">
+                    <strong>Cold Water:</strong> Main water supply meters measuring unheated water usage
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

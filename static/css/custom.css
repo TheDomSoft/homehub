@@ -1,0 +1,104 @@
+/* Custom styles for Water Dashboard */
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.text-xs {
+    font-size: .7rem;
+}
+
+.btn-group-sm > .btn, .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    border: 0;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.progress {
+    height: 0.5rem;
+}
+
+.img-thumbnail {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+.alert {
+    border: 0;
+    border-radius: 0.35rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: #5a5c69;
+}
+
+.badge-sm {
+    font-size: 0.7rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2e59d9;
+}
+
+.bg-primary {
+    background-color: #4e73df !important;
+}
+
+.text-primary {
+    color: #4e73df !important;
+}
+
+/* Analytics page specific styles */
+.usage-chart {
+    height: 400px;
+}
+
+.stats-card {
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    .btn-group-sm {
+        flex-direction: column;
+    }
+    
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+}

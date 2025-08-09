@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings - HomeHub{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    User Settings
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="fas fa-money-bill-wave me-2"></i>
+                            Currency Settings
+                        </h5>
+                        <div class="mb-3">
+                            <label for="{{ form.currency.id_for_label }}" class="form-label">{{ form.currency.label }}</label>
+                            {{ form.currency }}
+                            {% if form.currency.errors %}
+                                <div class="text-danger">{{ form.currency.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                This currency will be used throughout the application for cost calculations and display.
+                                Current: <strong>{{ settings.get_currency_display }} ({{ settings.get_currency_symbol }})</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-4">
+                        <h5 class="text-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Account Information
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Username:</strong> {{ user.username }}</p>
+                                <p><strong>Email:</strong> {{ user.email|default:"Not set" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Date Joined:</strong> {{ user.date_joined|date:"M d, Y" }}</p>
+                                <p><strong>Last Login:</strong> {{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-4">
+                        <h5 class="text-success">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Usage Statistics
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h4 class="text-primary">{{ user.watermeter_set.count }}</h4>
+                                        <small class="text-muted">Water Meters</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h4 class="text-success">{{ total_readings }}</h4>
+                                        <small class="text-muted">Total Readings</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h4 class="text-info">{{ processed_readings }}</h4>
+                                        <small class="text-muted">Processed by AI</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <a href="{% url 'dashboard:home' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    About Settings
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>Currency:</strong> Changes how costs are displayed throughout the application</li>
+                    <li><strong>Water Meter Costs:</strong> Set individual costs per liter for each water meter in the <a href="{% url 'utilities:meter_management' %}">Water section</a></li>
+                    <li><strong>Future Features:</strong> More settings will be added as new utilities are integrated</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
