@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import re
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,7 +28,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-@xm4q9-60cxypme@jaucy
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+_ALLOWED_HOSTS_RAW = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,[::1]')
+# Accept both commas and whitespace as separators, and strip empty entries
+ALLOWED_HOSTS = [h for h in (s.strip() for s in re.split(r'[\s,]+', _ALLOWED_HOSTS_RAW)) if h]
 
 
 # Application definition

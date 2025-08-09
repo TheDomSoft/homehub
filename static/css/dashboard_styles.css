@@ -1,0 +1,140 @@
+/* ---- General Modernization ---- */
+body {
+    background-color: #f8f9fc; /* A light gray background makes cards pop */
+    color: #5a5c69;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: #3a3b45;
+}
+
+/* ---- Card Modernization ---- */
+.card {
+    border: none;
+    border-radius: 0.75rem; /* Softer, rounded corners */
+    transition: all 0.2s ease-in-out;
+}
+
+.card.shadow-sm {
+     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1rem 1.5rem;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ---- Specific Component Styles ---- */
+
+/* Summary cards (top row) */
+.card .text-xs {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.text-gray-300 { color: #dddfeb !important; }
+.text-gray-800 { color: #3a3b45 !important; }
+
+
+/* Monthly Usage Meter Cards */
+.meter-summary-card {
+    background-color: #f8f9fc;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid #e3e6f0;
+    transition: all 0.2s ease-in-out;
+}
+
+.meter-summary-card:hover {
+    border-color: #4e73df;
+    background-color: #fff;
+}
+
+/* Modern Table Styling */
+.table {
+    border-collapse: separate;
+    border-spacing: 0 0.5rem; /* Add space between rows */
+}
+
+.table thead th {
+    border: none;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: #858796;
+    letter-spacing: 0.05em;
+}
+
+.table tbody tr {
+    background-color: #fff;
+    border-radius: 0.5rem; /* Rounded rows */
+    transition: all 0.2s ease;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    border-top: none;
+    border-bottom: none;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+/* Badge Customization for better contrast */
+.badge {
+    padding: 0.4em 0.75em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.35rem;
+}
+
+.bg-light-success { background-color: rgba(28, 200, 138, 0.15); }
+.text-success { color: #1cc88a !important; }
+
+.bg-light-warning { background-color: rgba(246, 194, 62, 0.15); }
+.text-warning { color: #f6c23e !important; }
+
+/* Button Modernization */
+.btn {
+    border-radius: 0.35rem;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    box-shadow: 0 2px 4px rgba(78, 115, 223, 0.2);
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2653d4;
+    transform: translateY(-1px);
+}
+
+.btn-outline-secondary, .btn-outline-info {
+    border-width: 1px;
+}
+
+/* Special Border for "Getting Started" card */
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}

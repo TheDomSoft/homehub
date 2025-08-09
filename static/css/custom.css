@@ -88,6 +88,114 @@
     transform: translateY(-2px);
 }
 
+/* Cropper related styles */
+.img-container {
+    max-height: 500px;
+    margin-bottom: 20px;
+    background-color: #f7f7f7;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.img-container img {
+    max-width: 100%;
+    display: block;
+}
+
+.cropper-container {
+    max-width: 100% !important;
+    max-height: 500px !important;
+}
+
+/* Customize cropper element colors to match theme */
+.cropper-view-box {
+    outline: 2px solid #4e73df !important;
+    outline-offset: -2px;
+}
+
+.cropper-face {
+    background-color: rgba(78, 115, 223, 0.1) !important;
+}
+
+.cropper-point {
+    background-color: #4e73df !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 4px rgba(78, 115, 223, 0.3) !important;
+}
+
+.cropper-point.point-nw,
+.cropper-point.point-ne,
+.cropper-point.point-sw,
+.cropper-point.point-se {
+    border-radius: 50% !important;
+}
+
+.cropper-line {
+    background-color: #4e73df !important;
+    opacity: 0.8 !important;
+}
+
+.cropper-line.line-e,
+.cropper-line.line-w {
+    width: 2px !important;
+}
+
+.cropper-line.line-n,
+.cropper-line.line-s {
+    height: 2px !important;
+}
+
+/* Progress indicator enhancement */
+.progress {
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+}
+
+/* Multi-step form enhancements */
+#crop-step-container {
+    animation: fadeIn 0.3s ease-in;
+}
+
+#upload-step {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading state for buttons */
+.btn-success:disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    cursor: not-allowed;
+}
+
+/* Enhanced cropper modal */
+.cropper-modal {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+.cropper-bg {
+    background-image: repeating-conic-gradient(#f8f9fa 0% 25%, transparent 0% 50%) !important;
+    background-size: 20px 20px !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .table-responsive {
@@ -100,5 +208,39 @@
     
     .stats-card {
         margin-bottom: 1rem;
+    }
+    
+    /* Cropper responsive adjustments */
+    .img-container {
+        max-height: 400px;
+    }
+    
+    .cropper-container {
+        max-height: 400px !important;
+    }
+    
+    .cropper-point {
+        width: 12px !important;
+        height: 12px !important;
+    }
+    
+    .cropper-line.line-e,
+    .cropper-line.line-w {
+        width: 3px !important;
+    }
+    
+    .cropper-line.line-n,
+    .cropper-line.line-s {
+        height: 3px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .img-container {
+        max-height: 300px;
+    }
+    
+    .cropper-container {
+        max-height: 300px !important;
     }
 }

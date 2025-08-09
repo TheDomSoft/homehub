@@ -16,85 +16,132 @@
                 </a>
             </div>
             <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.meter.id_for_label }}" class="form-label">Meter *</label>
-                        {{ form.meter }}
-                        {% if form.meter.errors %}
-                            <div class="text-danger">{{ form.meter.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">
-                            Select which meter this reading is for
-                            {% if not form.meter.field.queryset.exists %}
-                            <br>
-                            <div class="alert alert-info mt-2">
-                                <i class="fas fa-info-circle me-2"></i>
-                                No meters found. 
-                                <a href="{% url 'utilities:meter_management' %}" class="btn btn-sm btn-primary ms-2">
-                                    <i class="fas fa-plus me-1"></i>Add Your First Meter
-                                </a>
+                <!-- Add multi-step process -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="progress" style="height: 3px;">
+                            <div id="upload-progress" class="progress-bar bg-primary" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-primary"><small>1. Upload</small></span>
+                            <span id="crop-step" class="text-muted"><small>2. Crop</small></span>
+                            <span class="text-muted"><small>3. Process</small></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Upload Form -->
+                <div id="upload-step">
+                    <form id="upload-form" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.meter.id_for_label }}" class="form-label">Meter *</label>
+                            {{ form.meter }}
+                            {% if form.meter.errors %}
+                                <div class="text-danger">{{ form.meter.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                Select which meter this reading is for
+                                {% if not form.meter.field.queryset.exists %}
+                                <br>
+                                <div class="alert alert-info mt-2">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No meters found. 
+                                    <a href="{% url 'utilities:meter_management' %}" class="btn btn-sm btn-primary ms-2">
+                                        <i class="fas fa-plus me-1"></i>Add Your First Meter
+                                    </a>
+                                </div>
+                                {% endif %}
                             </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="image-upload" class="form-label">Meter Image *</label>
+                            <input type="file" id="image-upload" class="form-control" accept="image/*" required>
+                            <div class="form-text">
+                                Upload a clear photo of your meter display. 
+                                You'll be able to crop the image before processing.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Reading Time</label>
+                            <input type="text" class="form-control" value="Auto from image metadata or current time" disabled>
+                            <div class="form-text">
+                                Timestamp is set automatically from the photo's EXIF data. You can edit it later if needed.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.reading_value_manual.id_for_label }}" class="form-label">Manual Reading Value</label>
+                            {{ form.reading_value_manual }}
+                            {% if form.reading_value_manual.errors %}
+                                <div class="text-danger">{{ form.reading_value_manual.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">
+                                {{ form.reading_value_manual.help_text }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger">{{ form.notes.errors.0 }}</div>
                             {% endif %}
                         </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard:home' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            {% if form.meter.field.queryset.exists %}
+                                <button type="button" id="next-to-crop" class="btn btn-primary">
+                                    <i class="fas fa-crop me-2"></i>Next: Crop Image
+                                </button>
+                            {% else %}
+                                <button type="button" class="btn btn-primary" disabled>
+                                    <i class="fas fa-crop me-2"></i>Next: Crop Image
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Hidden file input for the actual form submission -->
+                        <div style="display: none;">
+                            {{ form.image }}
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Step 2: Crop Image -->
+                <div id="crop-step-container" style="display: none;">
+                    <div class="text-center mb-3">
+                        <h5>Crop Your Meter Image</h5>
+                        <p class="text-muted">Drag to position and resize the box to focus on the meter display</p>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.image.id_for_label }}" class="form-label">Meter Image *</label>
-                        {{ form.image }}
-                        {% if form.image.errors %}
-                            <div class="text-danger">{{ form.image.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">
-                            Upload a clear photo of your meter display. 
-                            AI will automatically read the numbers.
+                    <div class="mb-4">
+                        <div class="img-container">
+                            <img id="image-to-crop" src="" alt="Your uploaded image" class="img-fluid">
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.timestamp.id_for_label }}" class="form-label">Reading Time</label>
-                        {{ form.timestamp }}
-                        {% if form.timestamp.errors %}
-                            <div class="text-danger">{{ form.timestamp.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">
-                            Will use image metadata if available, or current time if left blank
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.reading_value_manual.id_for_label }}" class="form-label">Manual Reading Value</label>
-                        {{ form.reading_value_manual }}
-                        {% if form.reading_value_manual.errors %}
-                            <div class="text-danger">{{ form.reading_value_manual.errors.0 }}</div>
-                        {% endif %}
-                        <div class="form-text">
-                            {{ form.reading_value_manual.help_text }}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
-                        {{ form.notes }}
-                        {% if form.notes.errors %}
-                            <div class="text-danger">{{ form.notes.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'dashboard:home' %}" class="btn btn-secondary me-md-2">Cancel</a>
-                        {% if form.meter.field.queryset.exists %}
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-upload me-2"></i>Upload & Process
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <button type="button" id="back-to-upload" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <div>
+                            <button type="button" id="rotate-image" class="btn btn-outline-dark me-2">
+                                <i class="fas fa-sync me-1"></i>Rotate
                             </button>
-                        {% else %}
-                            <button type="button" class="btn btn-primary" disabled>
-                                <i class="fas fa-upload me-2"></i>Upload & Process
+                            <button type="button" id="crop-and-submit" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i>Apply Crop & Process
                             </button>
-                        {% endif %}
+                        </div>
                     </div>
-                </form>
+                </div>
+                
+                <!-- Hidden canvas for cropping operation -->
+                <canvas id="cropped-canvas" style="display: none;"></canvas>
             </div>
         </div>
         
@@ -112,10 +159,162 @@
                     <li>Ensure the meter display is clearly visible</li>
                     <li>Keep the camera steady and focused</li>
                     <li>Include the full meter reading in the frame</li>
+                    <li><strong>Use the cropping tool</strong> to focus exactly on the meter reading</li>
                     <li>You can specify in notes which type of meter reading if unclear</li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let cropper;
+        const imageInput = document.getElementById('image-upload');
+        const imageToCrop = document.getElementById('image-to-crop');
+        const uploadStep = document.getElementById('upload-step');
+        const cropStepContainer = document.getElementById('crop-step-container');
+        const nextToCropBtn = document.getElementById('next-to-crop');
+        const backToUploadBtn = document.getElementById('back-to-upload');
+        const cropAndSubmitBtn = document.getElementById('crop-and-submit');
+        const rotateImageBtn = document.getElementById('rotate-image');
+        const uploadForm = document.getElementById('upload-form');
+        const uploadProgress = document.getElementById('upload-progress');
+        const cropStepLabel = document.getElementById('crop-step');
+        const hiddenFileInput = document.querySelector('#id_image');
+        
+        // Move to crop step when "Next" is clicked
+        nextToCropBtn.addEventListener('click', function() {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert('Please select an image first');
+                return;
+            }
+            
+            // Update progress indicator
+            uploadProgress.style.width = '75%';
+            cropStepLabel.classList.remove('text-muted');
+            cropStepLabel.classList.add('text-primary');
+            
+            // Show the cropping interface
+            uploadStep.style.display = 'none';
+            cropStepContainer.style.display = 'block';
+            
+            // Create a URL for the selected image
+            const url = URL.createObjectURL(file);
+            imageToCrop.src = url;
+            
+            // Initialize cropper when the image is loaded
+            imageToCrop.onload = function() {
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: NaN,
+                    viewMode: 1,
+                    guides: true,
+                    autoCropArea: 0.7,
+                    responsive: true,
+                    background: false,
+                    modal: false,
+                });
+            };
+        });
+        
+        // Go back to upload step
+        backToUploadBtn.addEventListener('click', function() {
+            // Update progress indicator
+            uploadProgress.style.width = '50%';
+            cropStepLabel.classList.remove('text-primary');
+            cropStepLabel.classList.add('text-muted');
+            
+            // Show upload form, hide cropper
+            uploadStep.style.display = 'block';
+            cropStepContainer.style.display = 'none';
+            
+            // Destroy cropper instance
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        });
+        
+        // Rotate image
+        rotateImageBtn.addEventListener('click', function() {
+            if (cropper) {
+                cropper.rotate(90);
+            }
+        });
+        
+        // Process cropped image and submit the form
+        cropAndSubmitBtn.addEventListener('click', function() {
+            if (!cropper) return;
+            
+            // Show loading state
+            cropAndSubmitBtn.disabled = true;
+            cropAndSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            
+            // Update progress indicator to 100%
+            uploadProgress.style.width = '100%';
+            
+            try {
+                // Get cropped canvas
+                const canvas = cropper.getCroppedCanvas({
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    fillColor: '#fff',
+                    imageSmoothingQuality: 'high'
+                });
+                
+                if (!canvas) {
+                    throw new Error('Canvas creation failed');
+                }
+                
+                // Convert canvas to Blob
+                canvas.toBlob(function(blob) {
+                    if (!blob) {
+                        resetButton();
+                        return;
+                    }
+                    
+                    try {
+                        // Create a File from Blob
+                        const file = new File([blob], 'cropped_meter_reading.jpg', { 
+                            type: 'image/jpeg', 
+                            lastModified: Date.now() 
+                        });
+                        
+                        // Check if we can access the hidden file input
+                        if (!hiddenFileInput) {
+                            resetButton();
+                            return;
+                        }
+                        
+                        // Create a FileList-like object
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        
+                        // Set the cropped file to the hidden file input
+                        hiddenFileInput.files = dataTransfer.files;
+                        
+                        // Submit the form
+                        uploadForm.submit();
+                        
+                    } catch (error) {
+                        resetButton();
+                    }
+                }, 'image/jpeg', 0.95);
+                
+            } catch (error) {
+                resetButton();
+            }
+        });
+        
+        function resetButton() {
+            cropAndSubmitBtn.disabled = false;
+            cropAndSubmitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Apply Crop & Process';
+            uploadProgress.style.width = '75%';
+            alert('There was an error processing the image. Please try again.');
+        }
+    });
+</script>
 {% endblock %}

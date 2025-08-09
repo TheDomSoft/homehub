@@ -1,0 +1,45 @@
+# VCS
+.git/
+.gitignore
+
+# Python caches
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.cache/
+
+# Virtual environments and local env files
+.env
+.env.*
+.venv/
+venv/
+env/
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs and reports
+*.log
+coverage/
+htmlcov/
+*.coverage
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Project data not needed for build
+media/
+staticfiles/
+node_modules/
+ssl/
+
+# OS
+.DS_Store
+Thumbs.db
+
