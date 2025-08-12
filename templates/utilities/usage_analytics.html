@@ -117,33 +117,77 @@
 
 {% block extra_js %}
 {% if analytics_data %}
-<script>
-    {% for meter_name, data in analytics_data.items %}
-    // Chart for {{ meter_name }}
-    var trace{{ forloop.counter }} = {
-        x: {{ data.readings_dates|safe }},
-        y: {{ data.daily_usages|safe }},
-        type: 'scatter',
-        mode: 'lines+markers',
-        name: 'Daily Usage',
-        line: {color: '#4e73df', width: 3},
-        marker: {color: '#4e73df', size: 8}
-    };
-    
-    var layout{{ forloop.counter }} = {
-        title: '{{ meter_name }} - Daily Water Usage Trend',
-        xaxis: {title: 'Date'},
-        yaxis: {title: 'Usage (Liters)'},
-        showlegend: true,
-        hovermode: 'x unified',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        paper_bgcolor: 'rgba(0,0,0,0)',
-    };
-    
-    var config = {responsive: true, displayModeBar: false};
-    
-    Plotly.newPlot('chart-{{ forloop.counter }}', [trace{{ forloop.counter }}], layout{{ forloop.counter }}, config);
-    {% endfor %}
-</script>
+    <!-- 
+      Safely serialize the entire analytics_data dictionary from Django 
+      into a JSON object within a script tag.
+    -->
+    {{ analytics_data|json_script:"analytics-data" }}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the JSON data once it's available in the DOM.
+        const analyticsData = JSON.parse(document.getElementById('analytics-data').textContent);
+        
+        // Keep track of the chart index.
+        let chartIndex = 1;
+
+        // Loop through the data for each meter using standard JavaScript.
+        for (const [meterName, data] of Object.entries(analyticsData)) {
+            
+            // Check if there is valid data to plot
+            if (data.no_valid_data) {
+                continue; // Skip this meter if there's no valid data
+            }
+
+            const chartId = `chart-${chartIndex}`;
+
+            const trace = {
+                x: data.readings_dates,
+                y: data.daily_usages,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Usage Between Readings',
+                line: {color: '#4e73df', width: 3},
+                marker: {color: '#4e73df', size: 8},
+                hovertemplate: '<b>%{fullData.name}</b><br>' +
+                              'Time: %{x}<br>' +
+                              'Usage: %{y:.1f} Liters<br>' +
+                              '<extra></extra>'
+            };
+            
+            const layout = {
+                title: `${meterName} - Water Usage Over Time`,
+                xaxis: {
+                    title: 'Date & Time',
+                    type: 'date',
+                    tickangle: -45
+                },
+                yaxis: {
+                    title: 'Usage (Liters)',
+                    rangemode: 'tozero'
+                },
+                showlegend: true,
+                hovermode: 'closest',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                margin: {
+                    l: 50,
+                    r: 50,
+                    t: 50,
+                    b: 100
+                }
+            };
+            
+            const config = {responsive: true, displayModeBar: false};
+            
+            // Check if the chart container element exists before trying to plot
+            if (document.getElementById(chartId)) {
+                Plotly.newPlot(chartId, [trace], layout, config);
+            }
+
+            chartIndex++; // Increment index for the next chart
+        }
+    });
+    </script>
 {% endif %}
 {% endblock %}

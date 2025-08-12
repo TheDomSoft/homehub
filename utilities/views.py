@@ -10,7 +10,9 @@ import json
 from .models import WaterMeter, WaterReading, WaterUsage, CostPrediction
 from .forms import WaterReadingUploadForm, WaterMeterForm
 from .services import GeminiWaterMeterReader, ImageMetadataExtractor, WaterUsageCalculator
+import logging
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def upload_reading(request):
@@ -19,12 +21,44 @@ def upload_reading(request):
         if form.is_valid():
             reading = form.save(commit=False)
             
-            # Extract timestamp from image if not provided
+            # Use original timestamp if provided from frontend, otherwise extract from image
+            original_timestamp = request.POST.get('original_timestamp')
+            original_tz_offset = request.POST.get('original_tz_offset')
+            original_last_modified_ms = request.POST.get('original_last_modified_ms')
+            logger.info(f"Original timestamp: {original_timestamp}")
+            logger.info(f"Original tz offset: {original_tz_offset}")
+            if original_timestamp and not reading.timestamp:
+                try:
+                    # Normalize to ISO with 'T' separator
+                    ts = original_timestamp.strip().replace(' ', 'T')
+                    # If no explicit tz in timestamp, apply provided offset
+                    has_tz = ('+' in ts[10:] or '-' in ts[10:] or ts.endswith('Z'))
+                    if not has_tz and original_tz_offset:
+                        ts = f"{ts}{original_tz_offset}"
+                    # Parse ISO string
+                    parsed = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                    if timezone.is_naive(parsed):
+                        # As a last resort, assume server local timezone (not ideal)
+                        reading.timestamp = timezone.make_aware(parsed, timezone.get_current_timezone())
+                    else:
+                        reading.timestamp = parsed
+                except (ValueError, TypeError):
+                    reading.timestamp = None
+            
+            # If still not set, try client lastModified with client tz offset
+            if not reading.timestamp and original_last_modified_ms:
+                try:
+                    ms = int(original_last_modified_ms)
+                    dt_local = datetime.fromtimestamp(ms / 1000.0)
+                    if original_tz_offset:
+                        parsed = datetime.fromisoformat(dt_local.strftime('%Y-%m-%dT%H:%M:%S') + original_tz_offset)
+                        reading.timestamp = parsed if not timezone.is_naive(parsed) else timezone.make_aware(parsed)
+                except Exception:
+                    reading.timestamp = None
+
+            # Absolute last resort: current time
             if not reading.timestamp:
-                extracted_timestamp = ImageMetadataExtractor.extract_timestamp_from_image(
-                    reading.image.path
-                )
-                reading.timestamp = extracted_timestamp or timezone.now()
+                reading.timestamp = timezone.now()
             
             # Check if manual reading value is provided
             manual_value = form.cleaned_data.get('reading_value_manual')
@@ -154,24 +188,26 @@ def usage_analytics(request):
                 
                 daily_usages.append(usage)
                 readings_data.append({
-                    'date': curr_reading.timestamp.strftime('%Y-%m-%d'),
+                    'date': curr_reading.timestamp.strftime('%Y-%m-%d %H:%M'),
                     'usage': usage,
                     'current_reading': float(curr_reading.reading_value),
                     'previous_reading': float(prev_reading.reading_value),
                     'has_issue': usage < 0
                 })
-            
+                
             # Check for data quality issues
             negative_readings = [r for r in readings_data if r['has_issue']]
             valid_usages = [u for u in daily_usages if u > 0]
             
             # Calculate predictions only if we have positive usage data
-            if valid_usages:
-                predicted_usage, predicted_cost = WaterUsageCalculator.predict_monthly_cost(valid_usages, float(meter.cost_per_unit))
+            if any(u > 0 for u in valid_usages):
+                positive_usages = [u for u in valid_usages if u > 0]
+                predicted_usage, predicted_cost = WaterUsageCalculator.predict_monthly_cost(positive_usages, float(meter.cost_per_unit))
+                avg_daily = sum(positive_usages) / len(positive_usages)
                 
                 analytics_data[meter.name] = {
                     'daily_usages': daily_usages,
-                    'average_daily': sum(valid_usages) / len(valid_usages),
+                    'average_daily': avg_daily,
                     'predicted_monthly_usage': predicted_usage,
                     'predicted_monthly_cost': predicted_cost,
                     'readings_dates': [r['date'] for r in readings_data],

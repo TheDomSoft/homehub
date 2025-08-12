@@ -4,8 +4,9 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import os
 from django.utils import timezone
+import pytz
 import re
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -55,35 +56,80 @@ class ImageMetadataExtractor:
     def extract_timestamp_from_image(image_path_or_file):
         try:
             # Ensure file-like objects are at the start
-            try:
-                if hasattr(image_path_or_file, 'seek'):
+            if hasattr(image_path_or_file, 'seek'):
+                try:
                     image_path_or_file.seek(0)
-            except Exception:
-                pass
+                except Exception:
+                    pass
 
-            image = Image.open(image_path_or_file)
+            # Always read EXIF from the original file if possible to avoid metadata loss from edits/crops
+            exif_source = image_path_or_file
+            if hasattr(image_path_or_file, 'original_file'):  # custom attribute if we pass it
+                exif_source = image_path_or_file.original_file or image_path_or_file
+
+            image = Image.open(exif_source)
             exif_data = image.getexif()
 
-            def parse_exif_datetime(raw_dt: str, offset: str | None = None):
+            def parse_exif_datetime(raw_dt: str, offset: str = None):
+                """Parse EXIF datetime with improved error handling and timezone support"""
                 try:
-                    dt = datetime.strptime(raw_dt, "%Y:%m:%d %H:%M:%S")
-                    # Make timezone-aware using local timezone
-                    aware_dt = timezone.make_aware(dt, timezone.get_current_timezone())
+                    # Handle different datetime formats
+                    dt_formats = [
+                        "%Y:%m:%d %H:%M:%S",
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y:%m:%d %H:%M:%S.%f",
+                        "%Y-%m-%d %H:%M:%S.%f"
+                    ]
+                    
+                    dt = None
+                    for fmt in dt_formats:
+                        try:
+                            dt = datetime.strptime(raw_dt, fmt)
+                            break
+                        except ValueError:
+                            continue
+                    
+                    if not dt:
+                        return None
+                    
+                    # Handle timezone offset
                     if offset and len(offset) >= 6 and offset[0] in ['+', '-']:
-                        # Offset like +01:00; convert to timedelta and adjust
                         try:
                             sign = 1 if offset[0] == '+' else -1
                             hours = int(offset[1:3])
                             minutes = int(offset[4:6])
-                            aware_dt = aware_dt.replace() + sign * timezone.timedelta(hours=hours, minutes=minutes)
-                        except Exception:
-                            pass
-                    return aware_dt
-                except Exception:
+                            tz = dt_timezone(timedelta(hours=sign * hours, minutes=sign * minutes))
+                            return dt.replace(tzinfo=tz)
+                        except (ValueError, IndexError) as e:
+                            logger.warning(f"Failed to parse timezone offset '{offset}': {e}")
+                    
+                    # Use Django's timezone setting if available
+                    try:
+                        if hasattr(settings, 'TIME_ZONE') and settings.TIME_ZONE:
+                            local_tz = pytz.timezone(settings.TIME_ZONE)
+                            return local_tz.localize(dt)
+                    except Exception as e:
+                        logger.warning(f"Failed to use Django timezone: {e}")
+                    
+                    # Fallback to system timezone
+                    try:
+                        # More reliable way to get local timezone
+                        import time
+                        if time.daylight:
+                            local_tz = dt_timezone(timedelta(seconds=-time.altzone))
+                        else:
+                            local_tz = dt_timezone(timedelta(seconds=-time.timezone))
+                        return dt.replace(tzinfo=local_tz)
+                    except Exception:
+                        # Last resort: use UTC
+                        return dt.replace(tzinfo=dt_timezone.utc)
+                        
+                except Exception as e:
+                    logger.error(f"Error parsing EXIF datetime '{raw_dt}': {e}")
                     return None
 
             timestamp = None
-            offset_time = None
+            
             if exif_data:
                 # Build tag name -> value map
                 exif_by_name = {}
@@ -93,56 +139,80 @@ class ImageMetadataExtractor:
 
                 # Try common EXIF datetime tags by priority
                 raw_dt = None
-                for key in ["DateTimeOriginal", "DateTimeDigitized", "DateTime"]:
-                    if key in exif_by_name and exif_by_name[key]:
-                        raw_dt = exif_by_name[key]
-                        break
+                datetime_tags = ["DateTimeOriginal", "DateTimeDigitized", "DateTime"]
+                
+                for tag in datetime_tags:
+                    if tag in exif_by_name and exif_by_name[tag]:
+                        raw_dt = str(exif_by_name[tag]).strip()
+                        if raw_dt and raw_dt != "0000:00:00 00:00:00":
+                            break
+                        raw_dt = None
 
-                # Timezone offset tags if present
-                for key in ["OffsetTimeOriginal", "OffsetTimeDigitized", "OffsetTime"]:
-                    if key in exif_by_name and exif_by_name[key]:
-                        offset_time = str(exif_by_name[key])
+                # Get timezone offset
+                offset_time = None
+                offset_tags = ["OffsetTimeOriginal", "OffsetTimeDigitized", "OffsetTime"]
+                for tag in offset_tags:
+                    if tag in exif_by_name and exif_by_name[tag]:
+                        offset_time = str(exif_by_name[tag]).strip()
                         break
 
                 if raw_dt:
-                    timestamp = parse_exif_datetime(str(raw_dt), offset_time)
+                    timestamp = parse_exif_datetime(raw_dt, offset_time)
 
+            # Fallback strategies if no EXIF timestamp
             if not timestamp:
-                # Fallback to file creation time if we have a path
-                file_path = None
-                if isinstance(image_path_or_file, str):
-                    file_path = image_path_or_file
-                else:
-                    # Some uploaded files expose a temporary file name
-                    file_path = getattr(image_path_or_file, 'temporary_file_path', lambda: None)()
-                    if not file_path:
-                        file_path = getattr(image_path_or_file, 'name', None)
+                timestamp = ImageMetadataExtractor._get_file_timestamp(image_path_or_file)
 
-                if file_path and os.path.exists(file_path):
-                    try:
-                        ctime = os.path.getctime(file_path)
-                        timestamp = timezone.make_aware(datetime.fromtimestamp(ctime), timezone.get_current_timezone())
-                    except Exception:
-                        pass
+            # If still no timestamp, use current time with warning
+            if not timestamp:
+                logger.warning("No timestamp found in image, using current time")
+                timestamp = timezone.now()
 
             return timestamp
+            
         except Exception as e:
             logger.error(f"Error extracting timestamp: {e}")
-            return None
+            # Return current time as last resort
+            return timezone.now()
     
     @staticmethod
-    def get_image_info(image_path):
+    def _get_file_timestamp(image_path_or_file):
+        """Extract timestamp from file system metadata"""
         try:
-            image = Image.open(image_path)
-            return {
-                'format': image.format,
-                'size': image.size,
-                'mode': image.mode,
-            }
-        except Exception as e:
-            logger.error(f"Error getting image info: {e}")
-            return None
+            file_path = None
+            
+            if isinstance(image_path_or_file, str):
+                file_path = image_path_or_file
+            else:
+                # Try to get file path from uploaded file object
+                if hasattr(image_path_or_file, 'temporary_file_path'):
+                    try:
+                        file_path = image_path_or_file.temporary_file_path()
+                    except Exception:
+                        pass
+                
+                if not file_path and hasattr(image_path_or_file, 'name'):
+                    file_path = image_path_or_file.name
 
+            if file_path and os.path.exists(file_path):
+                # Use modification time (usually more reliable than creation time)
+                mtime = os.path.getmtime(file_path)
+                
+                # Convert to timezone-aware datetime
+                if hasattr(settings, 'TIME_ZONE') and settings.TIME_ZONE:
+                    try:
+                        local_tz = pytz.timezone(settings.TIME_ZONE)
+                        return datetime.fromtimestamp(mtime, tz=local_tz)
+                    except Exception:
+                        pass
+                
+                # Fallback to UTC
+                return datetime.fromtimestamp(mtime, tz=dt_timezone.utc)
+                
+        except Exception as e:
+            logger.error(f"Error getting file timestamp: {e}")
+            
+        return None
 
 class WaterUsageCalculator:
     @staticmethod

@@ -3,6 +3,7 @@
 {% block title %}Upload Reading - HomeHub{% endblock %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" rel="stylesheet">
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card">
@@ -108,6 +109,9 @@
                         <!-- Hidden file input for the actual form submission -->
                         <div style="display: none;">
                             {{ form.image }}
+                            <input type="hidden" id="original-timestamp" name="original_timestamp" value="">
+                            <input type="hidden" id="original-tz-offset" name="original_tz_offset" value="">
+                            <input type="hidden" id="original-last-modified-ms" name="original_last_modified_ms" value="">
                         </div>
                     </form>
                 </div>
@@ -169,6 +173,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         let cropper;
@@ -184,13 +190,66 @@
         const uploadProgress = document.getElementById('upload-progress');
         const cropStepLabel = document.getElementById('crop-step');
         const hiddenFileInput = document.querySelector('#id_image');
+        const originalTimestampInput = document.getElementById('original-timestamp');
         
+        function getBrowserOffsetString() {
+            const offsetMinutesFromUTC = -new Date().getTimezoneOffset(); // east of UTC is positive
+            const sign = offsetMinutesFromUTC >= 0 ? '+' : '-';
+            const abs = Math.abs(offsetMinutesFromUTC);
+            const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+            const mm = String(abs % 60).padStart(2, '0');
+            return `${sign}${hh}:${mm}`;
+        }
+
+        // Function to extract EXIF timestamp and timezone offset
+        function extractTimestamp(file, callback) {
+            EXIF.getData(file, function() {
+                const dateTime = EXIF.getTag(this, 'DateTime');
+                const dateTimeOriginal = EXIF.getTag(this, 'DateTimeOriginal');
+                const dateTimeDigitized = EXIF.getTag(this, 'DateTimeDigitized');
+                const offsetTime = EXIF.getTag(this, 'OffsetTimeOriginal') || EXIF.getTag(this, 'OffsetTimeDigitized') || EXIF.getTag(this, 'OffsetTime');
+
+                // Prefer DateTimeOriginal, then DateTimeDigitized, then DateTime
+                const timestamp = (dateTimeOriginal || dateTimeDigitized || dateTime || '').trim();
+
+                if (timestamp) {
+                    // Convert EXIF format "YYYY:MM:DD HH:MM:SS" to ISO format
+                    let isoTimestamp = timestamp.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+                    // Prefer EXIF offset, else fallback to browser offset
+                    const computedOffset = (offsetTime && String(offsetTime).trim()) || getBrowserOffsetString();
+                    callback({ isoTimestamp, offset: computedOffset });
+                } else {
+                    // No EXIF timestamp. As last resort, we can send browser time of file lastModified
+                    // but better to keep it empty and let server fallback to now.
+                    callback(null);
+                }
+            });
+        }
+
         // Move to crop step when "Next" is clicked
         nextToCropBtn.addEventListener('click', function() {
             const file = imageInput.files[0];
             if (!file) {
                 alert('Please select an image first');
                 return;
+            }
+            
+            // Extract timestamp from original image
+            extractTimestamp(file, function(result) {
+                const tzHidden = document.getElementById('original-tz-offset');
+                if (result) {
+                    originalTimestampInput.value = result.isoTimestamp;
+                    if (tzHidden) tzHidden.value = result.offset;
+                } else {
+                    // No EXIF timestamp; still record browser offset to help server interpretation if needed
+                    if (tzHidden) tzHidden.value = getBrowserOffsetString();
+                }
+            });
+
+            // Also send browser's file lastModified in case EXIF is missing
+            const lastModHidden = document.getElementById('original-last-modified-ms');
+            if (lastModHidden && file && file.lastModified) {
+                lastModHidden.value = String(file.lastModified);
             }
             
             // Update progress indicator
