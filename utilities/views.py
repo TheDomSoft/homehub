@@ -10,11 +10,12 @@ import json
 from .models import WaterMeter, WaterReading, WaterUsage, CostPrediction
 from .forms import WaterReadingUploadForm, WaterMeterForm
 from .services import GeminiWaterMeterReader, ImageMetadataExtractor, WaterUsageCalculator
+from accounts.decorators import reader_required, viewer_required, admin_required
 import logging
 
 logger = logging.getLogger(__name__)
 
-@login_required
+@reader_required
 def upload_reading(request):
     if request.method == 'POST':
         form = WaterReadingUploadForm(request.POST, request.FILES, user=request.user)
@@ -98,13 +99,13 @@ def upload_reading(request):
     return render(request, 'utilities/upload_reading.html', {'form': form})
 
 
-@login_required
+@viewer_required
 def readings_list(request):
     readings = WaterReading.objects.filter(meter__user=request.user)
     return render(request, 'utilities/readings_list.html', {'readings': readings})
 
 
-@login_required
+@reader_required
 def meter_management(request):
     if request.method == 'POST':
         form = WaterMeterForm(request.POST)
@@ -124,7 +125,7 @@ def meter_management(request):
     })
 
 
-@login_required
+@reader_required
 def edit_meter(request, meter_id):
     meter = get_object_or_404(WaterMeter, id=meter_id, user=request.user)
     
@@ -143,7 +144,7 @@ def edit_meter(request, meter_id):
     })
 
 
-@login_required
+@reader_required
 def delete_meter(request, meter_id):
     meter = get_object_or_404(WaterMeter, id=meter_id, user=request.user)
     
@@ -162,7 +163,7 @@ def delete_meter(request, meter_id):
     })
 
 
-@login_required
+@viewer_required
 def usage_analytics(request):
     meters = WaterMeter.objects.filter(user=request.user)
     analytics_data = {}
@@ -237,7 +238,7 @@ def usage_analytics(request):
     })
 
 
-@login_required
+@reader_required
 def edit_reading(request, reading_id):
     reading = get_object_or_404(WaterReading, id=reading_id, meter__user=request.user)
     
@@ -288,7 +289,7 @@ def edit_reading(request, reading_id):
     })
 
 
-@login_required
+@reader_required
 def delete_reading(request, reading_id):
     reading = get_object_or_404(WaterReading, id=reading_id, meter__user=request.user)
     
@@ -300,7 +301,7 @@ def delete_reading(request, reading_id):
     return render(request, 'utilities/confirm_delete.html', {'reading': reading})
 
 
-@login_required
+@viewer_required
 def api_usage_data(request):
     meters = WaterMeter.objects.filter(user=request.user)
     data = {}

@@ -1,5 +1,40 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, UserManager
+from django.conf import settings
+
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('role', 'admin')  # Force admin role for superusers
+        return super().create_superuser(username, email, password, **extra_fields)
+
+
+class CustomUser(AbstractUser):
+    ROLE_CHOICES = [
+        ('admin', 'Administrator'),
+        ('reader', 'Reader (Can Upload)'),
+        ('viewer', 'Viewer (Read Only)'),
+    ]
+    
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='viewer')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    objects = CustomUserManager()
+    
+    def save(self, *args, **kwargs):
+        # Automatically set admin role for superusers
+        if self.is_superuser and self.role == 'viewer':
+            self.role = 'admin'
+        super().save(*args, **kwargs)
+    
+    def is_admin(self):
+        return self.role == 'admin' or self.is_superuser
+    
+    def can_upload(self):
+        return self.role in ['admin', 'reader'] or self.is_superuser
+    
+    def can_only_view(self):
+        return self.role == 'viewer' and not self.is_superuser
 
 
 class UserSettings(models.Model):
@@ -18,7 +53,7 @@ class UserSettings(models.Model):
         ('HUF', 'Hungarian Forint (Ft)'),
     ]
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='settings')
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

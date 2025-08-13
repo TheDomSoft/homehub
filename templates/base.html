@@ -32,19 +32,25 @@
                             <i class="fas fa-chart-line me-1"></i>Dashboard
                         </a>
                     </li>
+                    
+                    <!-- Upload/Edit features - Only for admin and reader -->
+                    {% if user.can_upload %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'utilities:upload_reading' %}">
                             <i class="fas fa-camera me-1"></i>Upload Reading
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'utilities:readings_list' %}">
-                            <i class="fas fa-list me-1"></i>Readings
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'utilities:meter_management' %}">
                             <i class="fas fa-gauge me-1"></i>Meters
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- View features - All users can view -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'utilities:readings_list' %}">
+                            <i class="fas fa-list me-1"></i>Readings
                         </a>
                     </li>
                     <li class="nav-item">
@@ -65,6 +71,15 @@
                             <li><a class="dropdown-item" href="{% url 'settings:user_settings' %}">
                                 <i class="fas fa-cog me-1"></i>Settings
                             </a></li>
+                            {% if user.is_admin %}
+                            <li><a class="dropdown-item" href="{% url 'settings:user_management' %}">
+                                <i class="fas fa-users me-1"></i>User Management
+                            </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><span class="dropdown-item-text text-muted small">
+                                <i class="fas fa-user-tag me-1"></i>Role: {{ user.get_role_display }}
+                            </span></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}">
                                 <i class="fas fa-sign-out-alt me-1"></i>Logout

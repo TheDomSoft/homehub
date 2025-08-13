@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'dashboard',
     'utilities',
-    'settings',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -73,7 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'settings.context_processors.user_settings',
+                'accounts.context_processors.user_settings',
             ],
         },
     },
@@ -142,6 +142,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 # Security settings
 LOGIN_REDIRECT_URL = '/'
